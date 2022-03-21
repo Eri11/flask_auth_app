@@ -1,10 +1,21 @@
 from flask import Blueprint, render_template, redirect, url_for, request, flash
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import login_user, login_required, logout_user
+from password_strength import PasswordPolicy
+from password_strength import PasswordStats
 from .models import User
 from . import db
 
 auth = Blueprint('auth', __name__)
+
+policy = PasswordPolicy.from_names(
+    length=8,  # min length: 8
+    uppercase=1,  # need min. 2 uppercase letters
+    numbers=1,  # need min. 2 digits
+    special=1,  # need min. 2 special characters
+    # nonletters=2,  # need min. 2 non-letter characters (digits, specials, anything)
+    strength=0.66, #need a password that scires at least 0.66 with its entropy bits
+)
 
 @auth.route('/login')
 def login():
@@ -41,9 +52,12 @@ def signup_post():
     lastname = request.form.get('lastname')
     address = request.form.get('address')
     tel = request.form.get('tel')
-
+    
     email = request.form.get('email')
     password = request.form.get('password')
+    
+    stats = PasswordStats(password)
+    checkpolicy = policy.test(password)
 
     user = User.query.filter_by(email=email).first() # if this returns a user, then the email already exists in database
 
@@ -51,14 +65,22 @@ def signup_post():
         flash('El correo electrónico ya existe')
         return redirect(url_for('auth.signup'))
 
-    # create a new user with the form data. Hash the password so the plaintext version isn't saved.
-    new_user = User(name=name, lastname=lastname, address=address, tel=tel, email=email, password=generate_password_hash(password, method='sha256'))
+    
+    if stats.strength() < 0.66:
+        print(stats.strength())
+        flash("La contraseña no es lo suficientemente compleja. Evite usar caraceres consecutivos y palabras fáciles de adivinar.")
+        return redirect(url_for('auth.signup'))
+    else:
+        print(stats.strength())
+        
+        # create a new user with the form data. Hash the password so the plaintext version isn't saved.
+        new_user = User(name=name, lastname=lastname, address=address, tel=tel, email=email, password=generate_password_hash(password, method='sha256'))
 
-    # add the new user to the database
-    db.session.add(new_user)
-    db.session.commit()
+        # add the new user to the database
+        db.session.add(new_user)
+        db.session.commit()
 
-    return redirect(url_for('auth.login'))
+        return redirect(url_for('auth.login'))
 
 @auth.route('/logout')
 @login_required

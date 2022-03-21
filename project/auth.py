@@ -1,5 +1,6 @@
 from flask import Blueprint, render_template, redirect, url_for, request, flash
 #from werkzeug.security import generate_password_hash, check_password_hash
+#this is for SIMMETRICAL
 from flask_login import login_user, login_required, logout_user
 from password_strength import PasswordPolicy
 from password_strength import PasswordStats

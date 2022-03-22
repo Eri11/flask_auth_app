@@ -1,9 +1,14 @@
 from calendar import c
+from unittest import result
 from flask import Blueprint, render_template, redirect, url_for, request, flash
 #from werkzeug.security import generate_password_hash, check_password_hash
 #this is for SIMMETRICAL
+
+import base64 
 from Crypto.Cipher import AES
-from Crypto.Util.Padding import pad, unpad
+from Crypto.Util.Padding import pad,unpad
+from Crypto.Random import get_random_bytes
+
 from flask_login import login_user, login_required, logout_user
 from password_strength import PasswordPolicy
 from password_strength import PasswordStats
@@ -21,6 +26,8 @@ policy = PasswordPolicy.from_names(
     strength=0.66, #need a password that scires at least 0.66 with its entropy bits
 )
 
+
+
 @auth.route('/login')
 def login():
     return render_template('login.html')
@@ -36,19 +43,27 @@ def login_post():
     user = User.query.filter_by(email=email).first()
     # check if the user actually exists
 
-    def decrypt(password):
-        key = b'mysecretpassword' #16 byte password
-        iv = password.read(16)
-        cipherpass = password.read()
+    #Fixed IV
+    iv =  'mysupersecretaiv'.encode('utf-8') #16 char for AES128   
 
-        cipher = AES.new(key, AES.MODE_CBC, iv)
+    key = 'mysecretpassword'.encode('utf-8') #16 char for AES128
 
-        password.unpad(cipher.decrypt(cipherpass), AES.block_size)
+    
+    def decryptPass(password,key, iv):
+        
+        cipherpass = base64.b64decode(password).decode('utf-8')
+        cipher = AES.new(key, AES.MODE_CFB, iv)
+        
+        result = cipher.decrypt(cipherpass)
 
-        print(password)
+        return result
 
+    decryptedpass = decryptPass(password,key,iv)
+    print(f"Encrypted PWD: {decryptedpass}")
+            
+        
     # take the user-supplied password, hash it, and compare it to the hashed password in the database
-    if not user or not decrypt(user.password, password):
+    if not user or decryptedpass != password :
         flash('Usuario y Contraseña no coinciden, intenta de nuevo.')
         return redirect(url_for('auth.login')) # if the user doesn't exist or password is wrong, reload the page
 
@@ -88,17 +103,25 @@ def signup_post():
     else:
         print(stats.strength()) #remover en produccion
 
-        key = b'mysecretpassword' #16 byte password
-        
-        cipher = AES.new(key, AES.MODE_CBC)
+        #Fixed IV
+        iv =  'mysupersecretaiv'.encode('utf-8') #16 char for AES128   
 
-        cipherpass = cipher.encrypt(pad(password, AES.block_size))
-
-        print(cipherpass)
+        key = 'mysecretpassword'.encode('utf-8') #16 char for AES128
 
         
+        def encryptPass(password,key, iv):
+            password = password.encode('utf-8')
+            cipher = AES.new(key, AES.MODE_CFB, iv)
+            cipherpass = cipher.encrypt(password)
+
+            result = base64.b64encode(cipherpass).decode('utf-8')
+            return result
+
+        encryptedpass = encryptPass(password,key,iv)
+        print(f"Encrypted PWD: {encryptedpass}")
+               
         # create a new user with the form data. Hash the password so the plaintext version isn't saved.
-        new_user = User(name=name, lastname=lastname, address=address, tel=tel, email=email, password=cipherpass)
+        new_user = User(name=name, lastname=lastname, address=address, tel=tel, email=email, password=encryptedpass)
 
         # add the new user to the database
         db.session.add(new_user)

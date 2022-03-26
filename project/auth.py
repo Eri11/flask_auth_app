@@ -30,11 +30,22 @@ key = 'mysecretpassword'.encode('utf-8')
 iv = 'myivsupersecreta'.encode('utf-8')
 
 def encrypt(password, key, iv):
-    passToByte = pad(password.encode('utf-8'), AES.block_size)
+    stringToBytes = pad(password.encode('utf-8'), AES.block_size)
     cipher = AES.new(key, AES.MODE_CBC, iv)
-    ciphertext = base64.b64encode(cipher.encrypt(passToByte))
+    ciphertext = base64.b64encode(cipher.encrypt(stringToBytes))
 
     return ciphertext
+
+def decrypt(encryptedPass, key, iv):
+    decodedPass = base64.b64decode(encryptedPass)
+    print(f'Decoded {decodedPass}')
+
+    decipher = AES.new(key, AES.MODE_CBC, iv)
+    deciphertext = unpad(decipher.decrypt(decodedPass), AES.block_size).decode('utf-8')
+
+    print(f'Unpadded, deciphered and to string {deciphertext}')
+    
+    return deciphertext
 
 
 @auth.route('/signup')
@@ -98,9 +109,12 @@ def login_post():
     user = User.query.filter_by(email=email).first()
     # check if the user actually exists
 
-    ##decryptedPass  = decryptPass(password, key, iv)
+    encryptedPass
+
+
+    decryptedPass = decrypt(encryptedPass, key, iv)
         
-    ##print(f'Encrypted Password: {decryptedPass}')
+    print(f'Encrypted Password: {decryptedPass}')
         
     # take the user-supplied password, hash it, and compare it to the hashed password in the database
     if not user:

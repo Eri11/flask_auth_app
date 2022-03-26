@@ -7,12 +7,12 @@ from Crypto.Util.Padding import pad,unpad
 
 key = 'mysecretpassword'.encode('utf-8')
 iv = 'myivsupersecreta'.encode('utf-8')
-password = 'password'
+password = 'V3ryG00dPassw0rd?!'
 
 def encrypt(password, key, iv):
-    passToByte = pad(password.encode('utf-8'), AES.block_size)
+    stringToBytes = pad(password.encode('utf-8'), AES.block_size)
     cipher = AES.new(key, AES.MODE_CBC, iv)
-    ciphertext = base64.b64encode(cipher.encrypt(passToByte))
+    ciphertext = base64.b64encode(cipher.encrypt(stringToBytes))
 
     return ciphertext
 
@@ -23,14 +23,33 @@ print(f'Encrypted PWD: {encryptedPass}')
 ###
 
 def decrypt(encryptedPass, key, iv):
-    key = base64.b64decode(key.encode)
-    decryptedPass = base64.b64decode(encryptedPass.encode('utf-8'))
+    #decodedPass = base64.b64decode(encryptedPass)
+    #print(f'Decoded {decodedPass}')
+    #decipher = AES.new(key, AES.MODE_CBC, iv)
+    
+    #deciphertext = decipher.decrypt(decodedPass)
+    #print(f'Deciphered {deciphertext}')
 
-    cipher =  AES.new(key, AES.MODE_CBC, iv)
-    password = unpad(cipher.decrypt(encryptedPass), AES.block_size)
-    decipherPass = password.decode('utf-8')
+    #unpadPass = unpad(deciphertext, AES.block_size)
+    #print(f'Unpadded {unpadPass}')
 
-    return decipherPass
+    #bytesToString = unpadPass.decode('utf-8')
 
-decryptedPass = decrypt(encryptedPass, key, iv)
-print(f'Decrypted PWD: {decryptedPass}')
+    ###
+    decodedPass = base64.b64decode(encryptedPass)
+    print(f'Decoded {decodedPass}')
+
+    decipher = AES.new(key, AES.MODE_CBC, iv)
+    deciphertext = unpad(decipher.decrypt(decodedPass), AES.block_size).decode('utf-8')
+
+    print(f'Unpadded, deciphered and to string {deciphertext}')
+    
+    return deciphertext
+
+    #return decipherPass
+
+#decryptedPass = decrypt(encryptedPass, key, iv)
+#print(f'Decrypted PWD: {decryptedPass}')
+
+deciphered = decrypt(encryptedPass, key, iv)
+print(f'Decrypted {deciphered}')

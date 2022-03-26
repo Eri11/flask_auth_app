@@ -30,12 +30,11 @@ key = 'mysecretpassword'.encode('utf-8')
 iv = 'myivsupersecreta'.encode('utf-8')
 
 def encrypt(password, key, iv):
-    passToByte = password.encode('utf-8')
+    passToByte = pad(password.encode('utf-8'), AES.block_size)
     cipher = AES.new(key, AES.MODE_CBC, iv)
-    cipherPass = cipher.encrypt(pad(passToByte, AES.block_size))
+    ciphertext = base64.b64encode(cipher.encrypt(passToByte))
 
-    return cipherPass
-
+    return ciphertext
 
 
 @auth.route('/signup')

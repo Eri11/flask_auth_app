@@ -109,15 +109,16 @@ def login_post():
     user = User.query.filter_by(email=email).first()
     # check if the user actually exists
 
-    encryptedPass
 
+    encryptedPass = user.password
 
-    decryptedPass = decrypt(encryptedPass, key, iv)
-        
-    print(f'Encrypted Password: {decryptedPass}')
+    print(f'DB pass: {encryptedPass}')
+    
+    dbPass = decrypt(encryptedPass, key, iv)
+   
         
     # take the user-supplied password, hash it, and compare it to the hashed password in the database
-    if not user:
+    if not user or (dbPass != password):
         flash('Usuario y Contraseña no coinciden, intenta de nuevo.')
         return redirect(url_for('auth.login')) # if the user doesn't exist or password is wrong, reload the page
 

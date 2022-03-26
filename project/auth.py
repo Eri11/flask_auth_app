@@ -1,15 +1,15 @@
-from calendar import c
-from unittest import result
 from flask import Blueprint, render_template, redirect, url_for, request, flash
 #from werkzeug.security import generate_password_hash, check_password_hash
 #this is for SIMMETRICAL
+import json
 
-import base64 
 from Crypto.Cipher import AES
-from Crypto.Util.Padding import pad,unpad
+from Crypto.Util.Padding import pad, unpad
 from Crypto.Random import get_random_bytes
+import base64 
 
 from flask_login import login_user, login_required, logout_user
+from itsdangerous import base64_encode
 from password_strength import PasswordPolicy
 from password_strength import PasswordStats
 from .models import User
@@ -26,50 +26,17 @@ policy = PasswordPolicy.from_names(
     strength=0.66, #need a password that scires at least 0.66 with its entropy bits
 )
 
+key = 'mysecretpassword'.encode('utf-8')
+iv = 'myivsupersecreta'.encode('utf-8')
+
+def encrypt(password, key, iv):
+    passToByte = password.encode('utf-8')
+    cipher = AES.new(key, AES.MODE_CBC, iv)
+    cipherPass = cipher.encrypt(pad(passToByte, AES.block_size))
+
+    return cipherPass
 
 
-@auth.route('/login')
-def login():
-    return render_template('login.html')
-
-@auth.route('/login', methods=['POST'])
-def login_post():
-    # login code goes here
-       
-    email = request.form.get('email')
-    password = request.form.get('password')
-    remember = True if request.form.get('remember') else False
-
-    user = User.query.filter_by(email=email).first()
-    # check if the user actually exists
-
-    #Fixed IV
-    iv =  'mysupersecretaiv'.encode('utf-8') #16 char for AES128   
-
-    key = 'mysecretpassword'.encode('utf-8') #16 char for AES128
-
-    
-    def decryptPass(password,key, iv):
-        
-        cipherpass = base64.b64decode(password).decode('utf-8')
-        cipher = AES.new(key, AES.MODE_CFB, iv)
-        
-        result = cipher.decrypt(cipherpass)
-
-        return result
-
-    decryptedpass = decryptPass(password,key,iv)
-    print(f"Encrypted PWD: {decryptedpass}")
-            
-        
-    # take the user-supplied password, hash it, and compare it to the hashed password in the database
-    if not user or decryptedpass != password :
-        flash('Usuario y Contraseña no coinciden, intenta de nuevo.')
-        return redirect(url_for('auth.login')) # if the user doesn't exist or password is wrong, reload the page
-
-    # if the above check passes, then we know the user has the right credentials
-    login_user(user, remember=remember)
-    return redirect(url_for('main.profile'))
 
 @auth.route('/signup')
 def signup():
@@ -103,31 +70,48 @@ def signup_post():
     else:
         print(stats.strength()) #remover en produccion
 
-        #Fixed IV
-        iv =  'mysupersecretaiv'.encode('utf-8') #16 char for AES128   
+        encryptedPass = encrypt(password, key, iv)
+        print(f'Encrypted PWD: {encryptedPass}')
 
-        key = 'mysecretpassword'.encode('utf-8') #16 char for AES128
-
-        
-        def encryptPass(password,key, iv):
-            password = password.encode('utf-8')
-            cipher = AES.new(key, AES.MODE_CFB, iv)
-            cipherpass = cipher.encrypt(password)
-
-            result = base64.b64encode(cipherpass).decode('utf-8')
-            return result
-
-        encryptedpass = encryptPass(password,key,iv)
-        print(f"Encrypted PWD: {encryptedpass}")
+                
                
         # create a new user with the form data. Hash the password so the plaintext version isn't saved.
-        new_user = User(name=name, lastname=lastname, address=address, tel=tel, email=email, password=encryptedpass)
+        new_user = User(name=name, lastname=lastname, address=address, tel=tel, email=email, password=encryptedPass)
 
         # add the new user to the database
         db.session.add(new_user)
         db.session.commit()
 
         return redirect(url_for('auth.login'))
+
+@auth.route('/login')
+def login():
+    return render_template('login.html')
+
+@auth.route('/login', methods=['POST'])
+def login_post():
+    # login code goes here
+       
+    email = request.form.get('email')
+    password = request.form.get('password')
+    remember = True if request.form.get('remember') else False
+
+    user = User.query.filter_by(email=email).first()
+    # check if the user actually exists
+
+    ##decryptedPass  = decryptPass(password, key, iv)
+        
+    ##print(f'Encrypted Password: {decryptedPass}')
+        
+    # take the user-supplied password, hash it, and compare it to the hashed password in the database
+    if not user:
+        flash('Usuario y Contraseña no coinciden, intenta de nuevo.')
+        return redirect(url_for('auth.login')) # if the user doesn't exist or password is wrong, reload the page
+
+    # if the above check passes, then we know the user has the right credentials
+    login_user(user, remember=remember)
+    return redirect(url_for('main.profile'))
+
 
 @auth.route('/logout')
 @login_required

@@ -34,6 +34,8 @@ def decrypt(encryptedPass, key, iv):
     #print(f'Unpadded {unpadPass}')
 
     #bytesToString = unpadPass.decode('utf-8')
+    
+    #return decipherPass
 
     ###
     decodedPass = base64.b64decode(encryptedPass)
@@ -46,7 +48,7 @@ def decrypt(encryptedPass, key, iv):
     
     return deciphertext
 
-    #return decipherPass
+    
 
 #decryptedPass = decrypt(encryptedPass, key, iv)
 #print(f'Decrypted PWD: {decryptedPass}')

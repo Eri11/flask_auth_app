@@ -1,6 +1,4 @@
 import base64
-from email.mime import base
-from pydoc import plain 
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad,unpad
 
@@ -34,7 +32,7 @@ def decrypt(encryptedPass, key, iv):
     #print(f'Unpadded {unpadPass}')
 
     #bytesToString = unpadPass.decode('utf-8')
-    
+
     #return decipherPass
 
     ###

@@ -1,15 +1,12 @@
 from flask import Blueprint, render_template, redirect, url_for, request, flash
-#from werkzeug.security import generate_password_hash, check_password_hash
-#this is for SIMMETRICAL
-import json
 
+#this is for SIMMETRICAL
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad, unpad
 from Crypto.Random import get_random_bytes
 import base64 
 
 from flask_login import login_user, login_required, logout_user
-from itsdangerous import base64_encode
 from password_strength import PasswordPolicy
 from password_strength import PasswordStats
 from .models import User
@@ -38,13 +35,9 @@ def encrypt(password, key, iv):
 
 def decrypt(encryptedPass, key, iv):
     decodedPass = base64.b64decode(encryptedPass)
-    print(f'Decoded {decodedPass}')
-
     decipher = AES.new(key, AES.MODE_CBC, iv)
     deciphertext = unpad(decipher.decrypt(decodedPass), AES.block_size).decode('utf-8')
 
-    print(f'Unpadded, deciphered and to string {deciphertext}')
-    
     return deciphertext
 
 
@@ -109,14 +102,10 @@ def login_post():
     user = User.query.filter_by(email=email).first()
     # check if the user actually exists
 
-
     encryptedPass = user.password
 
-    print(f'DB pass: {encryptedPass}')
-    
     dbPass = decrypt(encryptedPass, key, iv)
    
-        
     # take the user-supplied password, hash it, and compare it to the hashed password in the database
     if not user or (dbPass != password):
         flash('Usuario y Contraseña no coinciden, intenta de nuevo.')

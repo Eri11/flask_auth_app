@@ -1,6 +1,5 @@
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import PKCS1_OAEP
-import binascii
 
 keyPair = RSA.generate(3072)
 
@@ -14,25 +13,26 @@ privKeyPEM = keyPair.exportKey()
 #print(privKeyPEM.decode('ascii'))
 
 
-msg = b'V3ryG00dPassw0rd?!'
+password = 'V3ryG00dPassw0rd?!'
 
-def encrypt(pubKey, msg):
+def encrypt(pubKey, password):
+    stringToBytes = password.encode('utf-8')
     encryptor = PKCS1_OAEP.new(pubKey)
-    encrypted = encryptor.encrypt(msg)
+    encrypted = encryptor.encrypt(stringToBytes)
     #print("Encrypted:", binascii.hexlify(encrypted))
 
     return encrypted
 
-encryptedMsg = encrypt(pubKey, msg)
-print(f'EncryptedMSG: {encryptedMsg}')
+encryptedPass = encrypt(pubKey, password)
+print(f'EncryptedPWD: {encryptedPass}')
 
 
-def decrypt (keyPair, encryptedMsg):
+def decrypt (keyPair, encryptedPass):
     decryptor = PKCS1_OAEP.new(keyPair)
-    decrypted = decryptor.decrypt(encryptedMsg)
+    decrypted = decryptor.decrypt(encryptedPass).decode('utf-8')
     #print('Decrypted:', decrypted)
 
     return decrypted
 
-decryptedMSG = decrypt(keyPair, encryptedMsg)
-print(f'DecryptedMSG: {decryptedMSG}')
+decryptedMSG = decrypt(keyPair, encryptedPass)
+print(f'DecryptedPWD: {decryptedMSG}')

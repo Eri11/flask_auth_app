@@ -1,10 +1,8 @@
 from flask import Blueprint, render_template, redirect, url_for, request, flash
 
 #this is for ASIMMETRICAL
-from Crypto.Cipher import AES
-from Crypto.Util.Padding import pad, unpad
-from Crypto.Random import get_random_bytes
-import base64 
+from Crypto.PublicKey import RSA
+from Crypto.Cipher import PKCS1_OAEP
 
 from flask_login import login_user, login_required, logout_user
 from password_strength import PasswordPolicy
@@ -23,22 +21,24 @@ policy = PasswordPolicy.from_names(
     strength=0.66, #need a password that scires at least 0.66 with its entropy bits
 )
 
-key = 'mysecretpassword'.encode('utf-8')
-iv = 'myivsupersecreta'.encode('utf-8')
+keyPair = RSA.generate(3072)
 
-def encrypt(password, key, iv):
-    stringToBytes = pad(password.encode('utf-8'), AES.block_size)
-    cipher = AES.new(key, AES.MODE_CBC, iv)
-    ciphertext = base64.b64encode(cipher.encrypt(stringToBytes))
+pubKey = keyPair.publickey()
+privKeyPEM = keyPair.exportKey()
+#print(privKeyPEM.decode('ascii'))
 
-    return ciphertext
+def encrypt(pubKey, password):
+    stringToBytes = password.encode('utf-8')
+    encryptor = PKCS1_OAEP.new(pubKey)
+    encrypted = encryptor.encrypt(stringToBytes)
 
-def decrypt(encryptedPass, key, iv):
-    decodedPass = base64.b64decode(encryptedPass)
-    decipher = AES.new(key, AES.MODE_CBC, iv)
-    deciphertext = unpad(decipher.decrypt(decodedPass), AES.block_size).decode('utf-8')
+    return encrypted
 
-    return deciphertext
+def decrypt (keyPair, encryptedPass):
+    decryptor = PKCS1_OAEP.new(keyPair)
+    decrypted = decryptor.decrypt(encryptedPass).decode('utf-8')
+
+    return decrypted
 
 
 @auth.route('/signup')
@@ -73,8 +73,8 @@ def signup_post():
     else:
         print(stats.strength()) #remover en produccion
 
-        encryptedPass = encrypt(password, key, iv)
-        print(f'Encrypted PWD: {encryptedPass}')
+        encryptedPass = encrypt(pubKey, password)
+        print(f'EncryptedPWD: {encryptedPass}')
 
                 
                
@@ -104,8 +104,9 @@ def login_post():
 
     encryptedPass = user.password
 
-    dbPass = decrypt(encryptedPass, key, iv)
-   
+    dbPass = decrypt(keyPair, encryptedPass)
+    print(f'DecryptedPWD: {dbPass}')
+
     # take the user-supplied password, hash it, and compare it to the hashed password in the database
     if not user or (dbPass != password):
         flash('Usuario y Contraseña no coinciden, intenta de nuevo.')
